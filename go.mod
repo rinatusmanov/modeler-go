@@ -1,4 +1,4 @@
-module modeler
+module github.com/rinatusmanov/modeler-go
 
 go 1.12
 

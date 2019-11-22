@@ -7,13 +7,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
-	"regexp"
 	"strings"
 
 	"github.com/jinzhu/gorm"
 )
 
-type modelerStruct struct {
+type Modeler struct {
 	models                        map[string]reflect.Type
 	modelsSlices                  map[string]reflect.Type
 	listOfModels                  map[string]interface{}
@@ -105,7 +104,7 @@ func createStructModel(pointer interface{}, link string) (model Model) {
 	return
 }
 
-func (m *modelerStruct) createTransactionAndAddVars(request RequestStruct) (tx *gorm.DB) {
+func (m *Modeler) createTransactionAndAddVars(request RequestStruct) (tx *gorm.DB) {
 	tx = m.db.Begin()
 	for key, value := range *request.TranVars {
 		tx.Exec(fmt.Sprintf(`SELECT set_config('myapp.%v', '%v', true);`, key, value))
@@ -118,7 +117,7 @@ func addVarsToTransacion(tx *gorm.DB, vars map[string]string) {
 	}
 }
 
-func (m *modelerStruct) Concurrency(concurrency bool) *modelerStruct {
+func (m *Modeler) Concurrency(concurrency bool) *Modeler {
 	m.concurrency = concurrency
 	return m
 }
@@ -135,7 +134,7 @@ type listStruct struct {
 	}
 }
 
-func (m *modelerStruct) listPattern(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+func (m *Modeler) listPattern(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	var (
 		request   = r.Context().Value(RequestStruct{}).(RequestStruct)
 		byteSl    []byte
@@ -145,9 +144,9 @@ func (m *modelerStruct) listPattern(w http.ResponseWriter, r *http.Request, db *
 		whereStr  []string
 	)
 	defer func() {
-		w.Write(byteSl)
+		_, _ = w.Write(byteSl)
 	}()
-	json.Unmarshal([]byte(request.body), &list)
+	_ = json.Unmarshal([]byte(request.body), &list)
 	if list.Data.Count != 0 {
 		db = db.Limit(list.Data.Count)
 		if list.Data.Page != 0 {
@@ -185,33 +184,33 @@ func (m *modelerStruct) listPattern(w http.ResponseWriter, r *http.Request, db *
 }
 
 // Получить список
-func (m *modelerStruct) List(w http.ResponseWriter, r *http.Request) {
+func (m *Modeler) List(w http.ResponseWriter, r *http.Request) {
 	m.listPattern(w, r, m.db)
 }
 
 // Получить список c удаленными записями
-func (m *modelerStruct) ListUnscoped(w http.ResponseWriter, r *http.Request) {
+func (m *Modeler) ListUnscoped(w http.ResponseWriter, r *http.Request) {
 	m.listPattern(w, r, m.db.Unscoped())
 }
 
 // Получить список удаленных записей
-func (m *modelerStruct) ListDeleted(w http.ResponseWriter, r *http.Request) {
+func (m *Modeler) ListDeleted(w http.ResponseWriter, r *http.Request) {
 	m.listPattern(w, r, m.db.Unscoped().Where(whereDeleted))
 }
 
 // Получить список всех поддерживаемых моделей с их структурой
-func (m *modelerStruct) ListModels(w http.ResponseWriter, r *http.Request) {
-	w.Write(m.byteSlListOfModels)
+func (m *Modeler) ListModels(w http.ResponseWriter, r *http.Request) {
+	_, _ = w.Write(m.byteSlListOfModels)
 }
 
 // Получить список имен поддержываемых моделей
-func (m *modelerStruct) ListNamesOfModels(w http.ResponseWriter, r *http.Request) {
-	w.Write(m.byteSlListOfModelsName)
+func (m *Modeler) ListNamesOfModels(w http.ResponseWriter, r *http.Request) {
+	_, _ = w.Write(m.byteSlListOfModelsName)
 }
 
 // Получить список имен поддержываемых моделей
-func (m *modelerStruct) ListModelDescription(w http.ResponseWriter, r *http.Request) {
-	w.Write(m.byteSlListOfModelDescriptions)
+func (m *Modeler) ListModelDescription(w http.ResponseWriter, r *http.Request) {
+	_, _ = w.Write(m.byteSlListOfModelDescriptions)
 }
 
 type getbyidStruct struct {
@@ -222,14 +221,14 @@ type getbyidStruct struct {
 }
 
 // Получить по ID
-func (m *modelerStruct) GetByID(w http.ResponseWriter, r *http.Request) {
+func (m *Modeler) GetByID(w http.ResponseWriter, r *http.Request) {
 	var request = r.Context().Value(RequestStruct{}).(RequestStruct)
 	var byteSl = byteSlNotInsertID
 	defer func() {
-		w.Write(byteSl)
+		_, _ = w.Write(byteSl)
 	}()
 	var getbyid getbyidStruct
-	json.Unmarshal([]byte(request.body), &getbyid)
+	_ = json.Unmarshal([]byte(request.body), &getbyid)
 	var ID = getbyid.Data.ID
 	if ID == "" {
 		return
@@ -248,7 +247,7 @@ func (m *modelerStruct) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 // создать запись в БД
-func (m *modelerStruct) Create(w http.ResponseWriter, r *http.Request) {
+func (m *Modeler) Create(w http.ResponseWriter, r *http.Request) {
 	var request = r.Context().Value(RequestStruct{}).(RequestStruct)
 	jsoned, _ := json.Marshal(request.Data)
 	var byteSl = byteSlModelStructInCorrect
@@ -263,7 +262,7 @@ func (m *modelerStruct) Create(w http.ResponseWriter, r *http.Request) {
 					tx.Commit()
 				}
 			}()
-			addVarsToTransacion(tx, (*request.TranVars))
+			addVarsToTransacion(tx, *request.TranVars)
 			return tx.
 				Create(request.model).Error
 		}()
@@ -279,7 +278,7 @@ func (m *modelerStruct) Create(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-	w.Write(byteSl)
+	_, _ = w.Write(byteSl)
 }
 
 type concurencyStruct struct {
@@ -292,9 +291,9 @@ type concurencyStruct struct {
 
 // getXminID
 // result 0 Ошибка по ID 1 Корректное завершение 10 Ошибка конкуренции
-func (m *modelerStruct) getXminID(str string) (id string, xmin uint64, result uint64, byteAr []byte, associations []string) {
+func (m *Modeler) getXminID(str string) (id string, xmin uint64, result uint64, byteAr []byte, associations []string) {
 	var concurency concurencyStruct
-	json.Unmarshal([]byte(str), &concurency)
+	_ = json.Unmarshal([]byte(str), &concurency)
 	associations = concurency.Associations
 	if concurency.Data.ID == "" {
 		byteAr = byteSlNotInsertID
@@ -311,7 +310,7 @@ func (m *modelerStruct) getXminID(str string) (id string, xmin uint64, result ui
 }
 
 // изменить запись в БД
-func (m *modelerStruct) Change(w http.ResponseWriter, r *http.Request) {
+func (m *Modeler) Change(w http.ResponseWriter, r *http.Request) {
 	var (
 		request      = r.Context().Value(RequestStruct{}).(RequestStruct)
 		byteSl       = byteSlModelStructInCorrect
@@ -323,7 +322,7 @@ func (m *modelerStruct) Change(w http.ResponseWriter, r *http.Request) {
 		associations []string
 	)
 	defer func() {
-		w.Write(byteSl)
+		_, _ = w.Write(byteSl)
 	}()
 	id, xmin, ok, byteSl, associations = m.getXminID(request.body)
 	if ok != 1 {
@@ -356,12 +355,12 @@ func (m *modelerStruct) Change(w http.ResponseWriter, r *http.Request) {
 				tx.Commit()
 			}
 		}()
-		addVarsToTransacion(tx, (*request.TranVars))
+		addVarsToTransacion(tx, *request.TranVars)
 		for index := 0; index < len(associations); index++ {
 			tx.Model(request.model).Association(associations[index]).Clear()
 		}
 		jsoned, _ = json.Marshal(request.Data)
-		json.Unmarshal(jsoned, request.model)
+		_ = json.Unmarshal(jsoned, request.model)
 		return tx.
 			Save(request.model).Error
 
@@ -379,7 +378,7 @@ func (m *modelerStruct) Change(w http.ResponseWriter, r *http.Request) {
 }
 
 // удалить запись в БД
-func (m *modelerStruct) Delete(w http.ResponseWriter, r *http.Request) {
+func (m *Modeler) Delete(w http.ResponseWriter, r *http.Request) {
 	var (
 		request = r.Context().Value(RequestStruct{}).(RequestStruct)
 		byteSl  = byteSlModelStructInCorrect
@@ -389,7 +388,7 @@ func (m *modelerStruct) Delete(w http.ResponseWriter, r *http.Request) {
 		errDb   error
 	)
 	defer func() {
-		w.Write(byteSl)
+		_, _ = w.Write(byteSl)
 	}()
 	id, xmin, ok, byteSl, _ = m.getXminID(request.body)
 	if ok == 0 {
@@ -422,7 +421,7 @@ func (m *modelerStruct) Delete(w http.ResponseWriter, r *http.Request) {
 				tx.Commit()
 			}
 		}()
-		addVarsToTransacion(tx, (*request.TranVars))
+		addVarsToTransacion(tx, *request.TranVars)
 		return tx.
 			Delete(request.model).Error
 	}()
@@ -439,7 +438,7 @@ func (m *modelerStruct) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 // восстановить запись в БД
-func (m *modelerStruct) Restore(w http.ResponseWriter, r *http.Request) {
+func (m *Modeler) Restore(w http.ResponseWriter, r *http.Request) {
 	var (
 		request = r.Context().Value(RequestStruct{}).(RequestStruct)
 		byteSl  = byteSlModelStructInCorrect
@@ -449,7 +448,7 @@ func (m *modelerStruct) Restore(w http.ResponseWriter, r *http.Request) {
 		errDb   error
 	)
 	defer func() {
-		w.Write(byteSl)
+		_, _ = w.Write(byteSl)
 	}()
 	id, xmin, ok, byteSl, _ = m.getXminID(request.body)
 	if ok == 0 {
@@ -482,7 +481,7 @@ func (m *modelerStruct) Restore(w http.ResponseWriter, r *http.Request) {
 				tx.Commit()
 			}
 		}()
-		addVarsToTransacion(tx, (*request.TranVars))
+		addVarsToTransacion(tx, *request.TranVars)
 		return tx.Unscoped().Model(request.model).UpdateColumn("deleted_at", nil).Error
 	}()
 	if errDb != nil {
@@ -498,8 +497,7 @@ func (m *modelerStruct) Restore(w http.ResponseWriter, r *http.Request) {
 }
 
 var (
-	regexpOnlyDigitsAndLetters = regexp.MustCompile(`[A-Za-z0-9]`)
-	whereDeleted               = gorm.ToColumnName("DeletedAt") + " is not  NULL"
+	whereDeleted = gorm.ToColumnName("DeletedAt") + " is not  NULL"
 	// ByteSlNotCorrectRequest Не корректный формат запроса
 	ByteSlNotCorrectRequest, _    = json.Marshal(&ResponseStruct{Code: 500, Error: "Не корректный формат запроса"})
 	byteSlModelNotFound, _        = json.Marshal(&ResponseStruct{Code: 501, Error: "Не найдена модель"})
@@ -507,12 +505,12 @@ var (
 	byteSlNotInsertID, _          = json.Marshal(&ResponseStruct{Code: 503, Error: "Нет ID"})
 	byteSlNotInsertXmin, _        = json.Marshal(&ResponseStruct{Code: 504, Error: "Нет Xmin"})
 
-	_, _                       = json.Marshal(&ResponseStruct{Code: 600, Error: "Ошибка БД"})
-	byteSlModelNotFoundAtDB, _ = json.Marshal(&ResponseStruct{Code: 601, Error: "Сущность не найдена в БД"})
-	_, _                       = json.Marshal(&ResponseStruct{Code: 602, Error: "Ошибка конкуренции данных"})
+	_, _ = json.Marshal(&ResponseStruct{Code: 600, Error: "Ошибка БД"})
+	_, _ = json.Marshal(&ResponseStruct{Code: 601, Error: "Сущность не найдена в БД"})
+	_, _ = json.Marshal(&ResponseStruct{Code: 602, Error: "Ошибка конкуренции данных"})
 
-	byteSlAccessDenied, _      = json.Marshal(&ResponseStruct{Code: 700, Error: "Нет прав доступа на данную операцию"})
-	byteSlRequestNotCorrect, _ = json.Marshal(&ResponseStruct{Code: 800, Error: "Не корректный запрос"})
+	byteSlAccessDenied, _ = json.Marshal(&ResponseStruct{Code: 700, Error: "Нет прав доступа на данную операцию"})
+	_, _                  = json.Marshal(&ResponseStruct{Code: 800, Error: "Не корректный запрос"})
 )
 
 func dbErr(message string) []byte {
@@ -520,10 +518,8 @@ func dbErr(message string) []byte {
 	return res
 }
 
-type postgresFunc func(tableName string, columnName string) bool
-
 // NewModeler Создает мукс с modeler
-func NewModeler(inDataDB *gorm.DB, acl ALCFunc, inDataListOfModels map[string]interface{}) *modelerStruct {
+func NewModeler(inDataDB *gorm.DB, acl ALCFunc, inDataListOfModels map[string]interface{}) *Modeler {
 	mux := http.NewServeMux()
 	var (
 		listOfModelsName   = []string{}
@@ -542,7 +538,7 @@ func NewModeler(inDataDB *gorm.DB, acl ALCFunc, inDataListOfModels map[string]in
 		byteSlListOfModels, _            = json.Marshal(&ResponseStruct{Code: 200, Result: inDataListOfModels})
 		byteSlListOfModelDescriptions, _ = json.Marshal(&ResponseStruct{Code: 200, Result: modelDescriptionSl})
 	)
-	var modeler = modelerStruct{
+	var modeler = Modeler{
 		acl:                           acl,
 		db:                            inDataDB,
 		listOfModels:                  inDataListOfModels,
@@ -556,7 +552,7 @@ func NewModeler(inDataDB *gorm.DB, acl ALCFunc, inDataListOfModels map[string]in
 		fun   func(w http.ResponseWriter, r *http.Request)
 		title string
 	}
-	mapOffunc := map[string]muxStruct{
+	mapOfFunc := map[string]muxStruct{
 		"/list":                   {modeler.List, "List"},
 		"/list_unscoped":          {modeler.ListUnscoped, "ListUnscoped"},
 		"/list_deleted":           {modeler.ListDeleted, "ListDeleted"},
@@ -569,7 +565,7 @@ func NewModeler(inDataDB *gorm.DB, acl ALCFunc, inDataListOfModels map[string]in
 		"/delete":                 {modeler.Delete, "Delete"},
 		"/restore":                {modeler.Restore, "Restore"},
 	}
-	for pattern, fun := range mapOffunc {
+	for pattern, fun := range mapOfFunc {
 		mux.HandleFunc(pattern, fun.fun)
 	}
 	modeler.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -585,7 +581,7 @@ func NewModeler(inDataDB *gorm.DB, acl ALCFunc, inDataListOfModels map[string]in
 		html, _ := ioutil.ReadAll(r.Body)
 		err := json.Unmarshal(html, &request)
 		if err != nil || request.Model == "" {
-			w.Write(ByteSlNotCorrectRequest)
+			_, _ = w.Write(ByteSlNotCorrectRequest)
 		} else {
 			if model, ok := modeler.models[request.Model]; ok {
 				modelSlice, _ := modeler.modelsSlices[request.Model]
@@ -593,7 +589,7 @@ func NewModeler(inDataDB *gorm.DB, acl ALCFunc, inDataListOfModels map[string]in
 				request.model = reflect.New(model).Interface()
 				request.modelsSlice = reflect.New(modelSlice).Interface()
 				_, pattern := mux.Handler(r)
-				action, ok := mapOffunc[pattern]
+				action, ok := mapOfFunc[pattern]
 				if ok {
 					vars := make(map[string]string)
 					request.TranVars = &vars
@@ -601,11 +597,11 @@ func NewModeler(inDataDB *gorm.DB, acl ALCFunc, inDataListOfModels map[string]in
 						ctx := context.WithValue(r.Context(), RequestStruct{}, request)
 						mux.ServeHTTP(w, r.WithContext(ctx))
 					} else {
-						w.Write(byteSlAccessDenied)
+						_, _ = w.Write(byteSlAccessDenied)
 					}
 				}
 			} else {
-				w.Write(byteSlModelNotFound)
+				_, _ = w.Write(byteSlModelNotFound)
 			}
 		}
 	})
