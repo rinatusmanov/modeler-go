@@ -531,7 +531,6 @@ var (
 	_, _                  = json.Marshal(&ResponseStruct{Code: 800, Error: "Не корректный запрос"})
 )
 
-// dbErr Error
 func dbErr(message string) []byte {
 	res, _ := json.Marshal(&ResponseStruct{Code: 600, Error: "Ошибка БД", Message: message})
 	return res
