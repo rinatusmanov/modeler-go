@@ -122,6 +122,22 @@ func (m *Modeler) Concurrency(concurrency bool) *Modeler {
 	return m
 }
 
+func (m *Modeler) PermissionCreate(permission func(name string, comments string) interface{}) *Modeler {
+	m.db.Where("name = ?", "Admin").FirstOrCreate(permission("Admin", "Admin Полный доступ"))
+	for key, _ := range m.models {
+		m.db.Where("name = ?", key+":List").FirstOrCreate(permission(key+":List", "Действие для модели "+key+" List"))
+		m.db.Where("name = ?", key+":ListUnscoped").FirstOrCreate(permission(key+":ListUnscoped", "Действие для модели "+key+" ListUnscoped"))
+		m.db.Where("name = ?", key+":ListDeleted").FirstOrCreate(permission(key+":ListDeleted", "Действие для модели "+key+" ListDeleted"))
+		m.db.Where("name = ?", key+":GetByID").FirstOrCreate(permission(key+":GetByID", "Действие для модели "+key+" GetByID"))
+		m.db.Where("name = ?", key+":Create").FirstOrCreate(permission(key+":Create", "Действие для модели "+key+" Create"))
+		m.db.Where("name = ?", key+":Change").FirstOrCreate(permission(key+":Change", "Действие для модели "+key+" Change"))
+		m.db.Where("name = ?", key+":Delete").FirstOrCreate(permission(key+":Delete", "Действие для модели "+key+" Delete"))
+		m.db.Where("name = ?", key+":Restore").FirstOrCreate(permission(key+":Restore", "Действие для модели "+key+" Restore"))
+		m.db.Where("name = ?", key+":Admin").FirstOrCreate(permission(key+":Admin", "Действие для модели "+key+" Admin"))
+	}
+	return m
+}
+
 type listStruct struct {
 	Data struct {
 		Pattern       string
@@ -224,9 +240,6 @@ type getbyidStruct struct {
 func (m *Modeler) GetByID(w http.ResponseWriter, r *http.Request) {
 	var request = r.Context().Value(RequestStruct{}).(RequestStruct)
 	var byteSl = byteSlNotInsertID
-	defer func() {
-		_, _ = w.Write(byteSl)
-	}()
 	var getbyid getbyidStruct
 	_ = json.Unmarshal([]byte(request.body), &getbyid)
 	var ID = getbyid.Data.ID
@@ -244,6 +257,7 @@ func (m *Modeler) GetByID(w http.ResponseWriter, r *http.Request) {
 		Where(gorm.ToColumnName("ID")+" = ?", ID).
 		Find(request.model)
 	byteSl, _ = json.Marshal(&ResponseStruct{Code: 200, Result: request.model})
+	_, _ = w.Write(byteSl)
 }
 
 // создать запись в БД
@@ -356,11 +370,15 @@ func (m *Modeler) Change(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 		addVarsToTransacion(tx, *request.TranVars)
+		fmt.Println(request.model)
 		for index := 0; index < len(associations); index++ {
 			tx.Model(request.model).Association(associations[index]).Clear()
 		}
 		jsoned, _ = json.Marshal(request.Data)
-		_ = json.Unmarshal(jsoned, request.model)
+		ok := json.Unmarshal(jsoned, request.model)
+		fmt.Println(string(jsoned))
+		fmt.Println(request.model)
+		fmt.Println(ok)
 		return tx.
 			Save(request.model).Error
 
