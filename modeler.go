@@ -611,7 +611,7 @@ func NewModeler(inDataDB *gorm.DB, acl ALCFunc, inDataListOfModels map[string]in
 			_, _ = w.Write(ByteSlNotCorrectRequest)
 		} else {
 			if model, ok := modeler.models[request.Model]; ok {
-				modelSlice, _ := modeler.modelsSlices[request.Model]
+				var modelSlice, _ = modeler.modelsSlices[request.Model]
 				request.body = string(html)
 				request.model = reflect.New(model).Interface()
 				request.modelsSlice = reflect.New(modelSlice).Interface()
