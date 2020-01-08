@@ -125,15 +125,24 @@ func (m *Modeler) Concurrency(concurrency bool) *Modeler {
 func (m *Modeler) PermissionCreate(permission func(name string, comments string) interface{}) *Modeler {
 	m.db.Where("name = ?", "Admin").FirstOrCreate(permission("Admin", "Admin Полный доступ"))
 	for key, _ := range m.models {
-		m.db.Where("name = ?", key+":List").FirstOrCreate(permission(key+":List", "Действие для модели "+key+" List"))
-		m.db.Where("name = ?", key+":ListUnscoped").FirstOrCreate(permission(key+":ListUnscoped", "Действие для модели "+key+" ListUnscoped"))
-		m.db.Where("name = ?", key+":ListDeleted").FirstOrCreate(permission(key+":ListDeleted", "Действие для модели "+key+" ListDeleted"))
-		m.db.Where("name = ?", key+":GetByID").FirstOrCreate(permission(key+":GetByID", "Действие для модели "+key+" GetByID"))
-		m.db.Where("name = ?", key+":Create").FirstOrCreate(permission(key+":Create", "Действие для модели "+key+" Create"))
-		m.db.Where("name = ?", key+":Change").FirstOrCreate(permission(key+":Change", "Действие для модели "+key+" Change"))
-		m.db.Where("name = ?", key+":Delete").FirstOrCreate(permission(key+":Delete", "Действие для модели "+key+" Delete"))
-		m.db.Where("name = ?", key+":Restore").FirstOrCreate(permission(key+":Restore", "Действие для модели "+key+" Restore"))
-		m.db.Where("name = ?", key+":Admin").FirstOrCreate(permission(key+":Admin", "Действие для модели "+key+" Admin"))
+		m.db.Where("name = ?", key+":List").FirstOrCreate(permission(key+":List", "Получени списка"))
+		m.db.Where("name = ?", key+":List:Priority").FirstOrCreate(permission(key+":List:Priority", "Приоритет. Получение списка"))
+		m.db.Where("name = ?", key+":ListUnscoped").FirstOrCreate(permission(key+":ListUnscoped", "Получени полного списка"))
+		m.db.Where("name = ?", key+":ListUnscoped:Priority").FirstOrCreate(permission(key+":ListUnscoped:Priority", "Приоритет. Получени полного списка"))
+		m.db.Where("name = ?", key+":ListDeleted").FirstOrCreate(permission(key+":ListDeleted", "Получение списка удаленных записей"))
+		m.db.Where("name = ?", key+":ListDeleted:Priority").FirstOrCreate(permission(key+":ListDeleted:Priority", "Приоритет. Получение списка удаленных записей"))
+		m.db.Where("name = ?", key+":GetByID").FirstOrCreate(permission(key+":GetByID", "Получение записи."))
+		m.db.Where("name = ?", key+":GetByID:Priority").FirstOrCreate(permission(key+":GetByID:Priority", "Приоритет. Получение записи."))
+		m.db.Where("name = ?", key+":Create").FirstOrCreate(permission(key+":Create", "Создание."))
+		m.db.Where("name = ?", key+":Create:Priority").FirstOrCreate(permission(key+":Create:Priority", "Приоритет. Создание."))
+		m.db.Where("name = ?", key+":Change").FirstOrCreate(permission(key+":Change", "Изменение."))
+		m.db.Where("name = ?", key+":Change:Priority").FirstOrCreate(permission(key+":Change:Priority", "Приоритет. Изменение."))
+		m.db.Where("name = ?", key+":Delete").FirstOrCreate(permission(key+":Delete", "Удаление."))
+		m.db.Where("name = ?", key+":Delete:Priority").FirstOrCreate(permission(key+":Delete:Priority", "Приоритет. Удаление."))
+		m.db.Where("name = ?", key+":Restore").FirstOrCreate(permission(key+":Restore", "Восстановление."))
+		m.db.Where("name = ?", key+":Restore:Priority").FirstOrCreate(permission(key+":Restore:Priority", "Приоритет. Восстановление."))
+		m.db.Where("name = ?", key+":Admin").FirstOrCreate(permission(key+":Admin", "Все права."))
+		m.db.Where("name = ?", key+":Admin:Priority").FirstOrCreate(permission(key+":Admin:Priority", "Приоритет. Все права."))
 	}
 	return m
 }
