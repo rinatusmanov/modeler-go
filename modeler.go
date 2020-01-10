@@ -177,7 +177,6 @@ func (m *Modeler) listPattern(w http.ResponseWriter, r *http.Request, db *gorm.D
 	if m.concurrency {
 		db = db.Select("*, xmin")
 	}
-
 	db.Where(strings.Join(whereStr, " OR "), whereData...).Find(request.modelsSlice)
 	m.db.Where(strings.Join(whereStr, " OR "), whereData...).Model(request.model).Count(&count)
 	byteSl, _ = json.Marshal(&ResponseStruct{Code: 200, Result: ListResult{Result: request.modelsSlice, Count: count}})
